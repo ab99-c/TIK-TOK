@@ -29,3 +29,7 @@ npm run preview
 ## إعداد Supabase
 
 افتح **SQL Editor** في مشروع Supabase، الصق محتوى `supabase-schema.sql`، ثم شغّل الأمر مرة واحدة. بعد ذلك، في Render أضف `DATABASE_URL` كـEnvironment Variable. للتشغيل المحلي، انسخ `.env.example` إلى `.env` وبدّل قيمة `DATABASE_URL` فقط؛ لا ترفع `.env` إلى GitHub.
+
+## النشر على Vercel
+
+يمكن نشر الواجهة والـExpress API على Vercel من خلال ربط مستودع GitHub. اختار مجلد `TikTok` كمجلد المشروع، واستعمل `npm run build` للبناء. أضف `DATABASE_URL` في Project Settings → Environment Variables، ثم أعد النشر. الملف `api/index.js` هو مدخل الـAPI، والواجهة تستعمل نفس النطاق في production.

@@ -48,4 +48,11 @@ app.get("/api/videos/:videoId/comments", async (req, res) => { const result = aw
 app.post("/api/videos/:videoId/comments", async (req, res) => { const body = String(req.body?.body || "").trim(); if (!body || body.length > 500) return res.status(400).json({ error: "التعليق خاصو يكون بين 1 و500 حرف" }); const user = await getOrCreateUser(req.body?.username); const result = await pool.query("INSERT INTO comments (video_id, user_id, body) VALUES ($1, $2, $3) RETURNING id, video_id, body, created_at", [req.params.videoId, user.id, body]); res.status(201).json({ ...result.rows[0], username: user.username, display_name: user.displayName }); });
 app.post("/api/videos/:videoId/like", async (req, res) => { const user = await getOrCreateUser(req.body?.username); const existing = await pool.query("SELECT 1 FROM likes WHERE video_id = $1 AND user_id = $2", [req.params.videoId, user.id]); if (existing.rowCount) await pool.query("DELETE FROM likes WHERE video_id = $1 AND user_id = $2", [req.params.videoId, user.id]); else await pool.query("INSERT INTO likes (video_id, user_id) VALUES ($1, $2)", [req.params.videoId, user.id]); const count = await pool.query("SELECT COUNT(*)::int AS count FROM likes WHERE video_id = $1", [req.params.videoId]); res.json({ liked: !existing.rowCount, likesCount: count.rows[0].count }); });
 
-initDatabase().then(() => app.listen(port, () => console.log(`TikTok PostgreSQL API running on port ${port}`))).catch((error) => { console.error("Database initialization failed:", error.message); process.exit(1); });
+const databaseReady = initDatabase();
+app.use(async (_req, _res, next) => { try { await databaseReady; next(); } catch (error) { next(error); } });
+
+if (!process.env.VERCEL) {
+  databaseReady.then(() => app.listen(port, () => console.log(`TikTok PostgreSQL API running on port ${port}`))).catch((error) => { console.error("Database initialization failed:", error.message); process.exit(1); });
+}
+
+export { app };
