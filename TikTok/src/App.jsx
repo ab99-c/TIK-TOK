@@ -40,8 +40,14 @@ export default function App() {
   const [watchSeconds, setWatchSeconds] = useState(0);
   const [draft, setDraft] = useState("");
   const [loading, setLoading] = useState(true);
+  const [comments, setComments] = useState([]);
+  const [likesCount, setLikesCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [apiStatus, setApiStatus] = useState("جاري الاتصال بالـBackend…");
   const dragStartRef = useRef(null);
   const video = VIDEOS[index];
+  const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8787";
 
   useEffect(() => {
     setLoading(true);
@@ -54,6 +60,17 @@ export default function App() {
     const timer = window.setInterval(() => setWatchSeconds((seconds) => seconds + 1), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/videos/${video.id}/comments`)
+      .then((response) => response.json())
+      .then((data) => { setComments(data); setApiStatus("متصل — البيانات كتتخزن فقاعدة البيانات"); })
+      .catch(() => setApiStatus("الوضع التجريبي — شغّل الـBackend باش يتخزنو البيانات"));
+    fetch(`${API_BASE}/api/videos`)
+      .then((response) => response.json())
+      .then((data) => { const current = data.find((item) => item.id === video.id); if (current) setLikesCount(Number(current.likes_count)); })
+      .catch(() => {});
+  }, [video.id]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -94,6 +111,19 @@ export default function App() {
       setSentFlash(false);
       setStripOpen(false);
     }, 900);
+  };
+
+  const addComment = async (event) => {
+    event.preventDefault();
+    const body = commentDraft.trim();
+    if (!body) return;
+    const response = await fetch(`${API_BASE}/api/videos/${video.id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body, username: "guest" }) });
+    if (response.ok) { const comment = await response.json(); setComments((current) => [comment, ...current]); setCommentDraft(""); }
+  };
+
+  const toggleLike = async () => {
+    const response = await fetch(`${API_BASE}/api/videos/${video.id}/like`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username: "guest" }) });
+    if (response.ok) { const data = await response.json(); setLiked(data.liked); setLikesCount(data.likesCount); }
   };
 
   const triggerTestMessage = () => {
@@ -152,8 +182,18 @@ export default function App() {
           </div>
         </div>
 
+        <div className="data-status" role="status"><span className="status-dot" />{apiStatus}</div>
+        <div className="social-actions">
+          <button className={`like-button ${liked ? "liked" : ""}`} onClick={toggleLike} aria-label="إعجاب بالفيديو">♥ <span>{likesCount}</span></button>
+          <span className="comment-count">{comments.length} تعليقات محفوظة</span>
+        </div>
+        <form className="comment-form" onSubmit={addComment}>
+          <input value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="كتب تعليق وتخزنو فالداتابيز…" aria-label="تعليق جديد" maxLength={500} />
+          <button type="submit" aria-label="حفظ التعليق"><Send size={14} /></button>
+        </form>
+        <div className="comments-list" aria-live="polite">{comments.slice(0, 3).map((comment) => <div className="comment" key={comment.id}><strong>@{comment.username}</strong><span>{comment.body}</span></div>)}</div>
         <button className="test-button" onClick={triggerTestMessage} disabled={Boolean(notification) || stripOpen}>+ طيّح رسالة دابا</button>
-        <p className="footnote">الفيديوهات محمّلة مباشرة من TikTok عبر الـ embed الرسمي. الرسائل في هذه النسخة تجريبية ومحلية فقط.</p>
+        <p className="footnote">الفيديوهات محمّلة مباشرة من TikTok عبر الـ embed الرسمي. الرسائل، likes والتعليقات كتتخزن عبر الـBackend.</p>
       </section>
     </main>
   );
