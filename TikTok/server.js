@@ -17,7 +17,7 @@ const videoSeed = [
 ];
 
 fs.mkdirSync(dataDir, { recursive: true });
-const initialData = { users: [], videos: videoSeed.map(([id, url]) => ({ id, url, title: "", createdAt: new Date().toISOString() })), comments: [], likes: [] };
+const initialData = { users: [], videos: videoSeed.map(([id, url]) => ({ id, url, title: "", createdAt: new Date().toISOString() })), comments: [], likes: [], messages: [] };
 if (!fs.existsSync(dataFile)) fs.writeFileSync(dataFile, JSON.stringify(initialData, null, 2));
 const readData = () => JSON.parse(fs.readFileSync(dataFile, "utf8"));
 const writeData = (data) => fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
@@ -41,6 +41,17 @@ app.get("/api/videos", (_req, res) => {
 });
 
 app.post("/api/users", (req, res) => { const data = readData(); const user = getOrCreateUser(data, req.body?.username); writeData(data); res.status(201).json(user); });
+
+app.post("/api/messages", (req, res) => {
+  const body = String(req.body?.body || "").trim();
+  if (!body || body.length > 500) return res.status(400).json({ error: "الرسالة خاصها تكون بين 1 و500 حرف" });
+  const data = readData();
+  const user = getOrCreateUser(data, req.body?.username);
+  const message = { id: data.messages.length + 1, userId: user.id, username: user.username, body, createdAt: now() };
+  data.messages.push(message); writeData(data); res.status(201).json(message);
+});
+
+app.get("/api/messages", (_req, res) => { const data = readData(); res.json(data.messages.slice(-50).reverse()); });
 
 app.get("/api/videos/:videoId/comments", (req, res) => {
   const data = readData();

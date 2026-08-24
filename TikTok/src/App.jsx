@@ -102,8 +102,11 @@ export default function App() {
     dragStartRef.current = null;
   };
 
-  const sendMessage = () => {
-    if (!draft.trim()) return;
+  const sendMessage = async () => {
+    const body = draft.trim();
+    if (!body) return;
+    const response = await fetch(`${API_BASE}/api/messages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body, username: "guest" }) });
+    if (!response.ok) return;
     setDraft("");
     setSentFlash(true);
     setNotification(null);
