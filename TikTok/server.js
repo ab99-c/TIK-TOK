@@ -19,7 +19,11 @@ const videoSeed = [
 fs.mkdirSync(dataDir, { recursive: true });
 const initialData = { users: [], videos: videoSeed.map(([id, url]) => ({ id, url, title: "", createdAt: new Date().toISOString() })), comments: [], likes: [], messages: [] };
 if (!fs.existsSync(dataFile)) fs.writeFileSync(dataFile, JSON.stringify(initialData, null, 2));
-const readData = () => JSON.parse(fs.readFileSync(dataFile, "utf8"));
+const readData = () => {
+  const data = JSON.parse(fs.readFileSync(dataFile, "utf8"));
+  data.users ||= []; data.videos ||= []; data.comments ||= []; data.likes ||= []; data.messages ||= [];
+  return data;
+};
 const writeData = (data) => fs.writeFileSync(dataFile, JSON.stringify(data, null, 2));
 const now = () => new Date().toISOString();
 
